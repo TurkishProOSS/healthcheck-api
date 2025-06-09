@@ -1,0 +1,10 @@
+REGIONS=`{
+	"dev1": {
+		"id": "DEV-01-ANY",
+		"location": "localhost"
+	}
+}`
+HOST_URL=""
+HOST_TOKEN=""
+FETCH_URL=""
+FETCH_TOKEN=""
