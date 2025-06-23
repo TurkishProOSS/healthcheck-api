@@ -2,14 +2,12 @@
 
 import { Context } from "hono";
 export class Healthcheck {
-	c: Context<any>;
 	regions: Record<string, { id: string; location: string }>;
 	private sections: any[] = [];
 	private resources: any[] = [];
 	private reports: any[] = [];
 
-	constructor(c: any, regions: Record<string, { id: string; location: string }>) {
-		this.c = c;
+	constructor(regions: Record<string, { id: string; location: string }>) {
 		this.regions = regions;
 	}
 
@@ -39,11 +37,11 @@ export class Healthcheck {
 	}
 
 	private fetchFrom(endpoint: string) {
-		const url = `${this.c.env.FETCH_URL}/${endpoint}`;
+		const url = `${process.env.FETCH_URL}/${endpoint}`;
 		// @ts-ignore
 		return fetch(url, {
 			headers: {
-				"Authorization": `Bearer ${this.c.env.FETCH_TOKEN}`
+				"Authorization": `Bearer ${process.env.FETCH_TOKEN}`
 			}
 		});
 	}
