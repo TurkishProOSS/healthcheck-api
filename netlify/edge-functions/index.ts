@@ -1,14 +1,91 @@
+import { Hono } from '@hono/hono'
+import { handle } from '@hono/hono/netlify'
+import { cors } from '@hono/hono/cors'
+
+const app = new Hono()
+
+app.use('*', cors({
+	origin: '*',
+	allowMethods: ['GET']
+}));
+
+app.get('/', async (c) => {
+	// @ts-ignore
+	const region = new Regions(process.env)
+	const regions = await region.getRegionList()
+	// @ts-ignore
+	const healthcheck = new Healthcheck(process.env)
+	const healthcheckData = await healthcheck.getStatusPageData()
+	return c.json({
+		regions,
+		healthcheckData
+	})
+})
+
+export default handle(app)
 
 
-import { Context } from "hono";
-export class Healthcheck {
-	regions: Record<string, { id: string; location: string }>;
+// Regions
+class Regions {
+	env: any;
+
+	constructor(env: any) {
+		this.env = env;
+	}
+
+	async getRegionList(): Promise<Record<string, { id: string; location: string }>> {
+		return JSON.parse(this.env.REGIONS || "{}");
+	}
+
+
+	async getIdRegion() {
+		try {
+			const regions = await this.getRegionList();
+
+			// @ts-ignore
+			const response = await fetch(this.env.HOST_URL, {
+				headers: {
+					"Authorization": `Bearer ${this.env.HOST_TOKEN}`
+				}
+			});
+			const data = await response.json();
+			const reg = data.resourceConfig.functionDefaultRegions.at(0);
+
+			return regions?.[reg as keyof typeof regions] || {
+				id: reg,
+				location: "N/A"
+			};
+		} catch (error) {
+			return {
+				id: "N/A",
+				location: "N/A"
+			};
+		}
+	}
+
+	async getApiRegion() {
+		const regions = await this.getRegionList();
+		return regions.ist1;
+	}
+
+	async getRegions() {
+		return {
+			"id.turkishpro.gg": await this.getIdRegion(),
+			"api.turkishpro.gg": await this.getApiRegion()
+		}
+	}
+}
+
+
+// Healthcheck
+class Healthcheck {
 	private sections: any[] = [];
 	private resources: any[] = [];
 	private reports: any[] = [];
+	env: any;
 
-	constructor(regions: Record<string, { id: string; location: string }>) {
-		this.regions = regions;
+	constructor(env: any) {
+		this.env = env;
 	}
 
 	async fetchData() {
@@ -37,11 +114,11 @@ export class Healthcheck {
 	}
 
 	private fetchFrom(endpoint: string) {
-		const url = `${process.env.FETCH_URL}/${endpoint}`;
+		const url = `${this.env.FETCH_URL}/${endpoint}`;
 		// @ts-ignore
 		return fetch(url, {
 			headers: {
-				"Authorization": `Bearer ${process.env.FETCH_TOKEN}`
+				"Authorization": `Bearer ${this.env.FETCH_TOKEN}`
 			}
 		});
 	}
@@ -54,7 +131,7 @@ export class Healthcheck {
 					(res: any) => res.status_page_resource_id === resource.id
 				)
 			);
-			const region = this.regions?.[attributes.public_name as keyof typeof this.regions] || {};
+			const region = this.env.REGIONS?.[attributes.public_name as keyof typeof this.env.REGIONS] || {};
 			const section = this.sections.find((s: any) => +s.id === attributes.status_page_section_id);
 
 			return {
