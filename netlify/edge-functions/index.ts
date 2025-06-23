@@ -15,11 +15,7 @@ app.get('/', async (c) => {
 	const regions = await region.getRegionList()
 	// @ts-ignore
 	const healthcheck = new Healthcheck(process.env)
-	const healthcheckData = await healthcheck.getStatusPageData()
-	return c.json({
-		regions,
-		healthcheckData
-	})
+	return c.json(await healthcheck.getStatusPageData());
 })
 
 export default handle(app)
